@@ -1,0 +1,70 @@
+const express = require('express');
+const router = express.Router();
+const fs = require('fs');
+const path = require('path');
+
+const CONTACT_LOG_FILE = path.join(__dirname, '..', 'contact-submissions.json');
+
+function saveContactSubmission(submission) {
+    let existingSubmissions = [];
+
+    if (fs.existsSync(CONTACT_LOG_FILE)) {
+        try {
+            const fileData = fs.readFileSync(CONTACT_LOG_FILE, 'utf8');
+            existingSubmissions = fileData ? JSON.parse(fileData) : [];
+        } catch (error) {
+            console.error('Could not read existing contact submissions file:', error);
+        }
+    }
+
+    existingSubmissions.push(submission);
+    fs.writeFileSync(CONTACT_LOG_FILE, JSON.stringify(existingSubmissions, null, 2), 'utf8');
+}
+
+// Handle contact form submissions
+router.post('/contact', (req, res) => {
+    try {
+        const { name, email, phone, subject, message } = req.body;
+
+        // Validate form data
+        if (!name || !email || !phone || !subject || !message) {
+            console.error('[CONTACT] Missing fields — not saved. Received body:', req.body);
+            return res.status(400).json({ success: false, message: 'All fields are required' });
+        }
+        
+        // In a real application, you would:
+        // 1. Save the contact form data to a database
+        // 2. Send an email notification
+        // 3. Possibly create a ticket in a CRM system
+        
+        const submission = {
+            name,
+            email,
+            phone,
+            subject,
+            message,
+            timestamp: new Date()
+        };
+
+        console.error('---------- CONTACT FORM (saved) ----------');
+        console.error(JSON.stringify(submission, null, 2));
+        console.error('------------------------------------------');
+        saveContactSubmission(submission);
+        
+        // Return success response
+        res.status(200).json({ 
+            success: true, 
+            message: 'Thank you for your message! We will get back to you soon.' 
+        });
+    } catch (err) {
+        console.error('Error processing contact form:', err);
+        res.status(500).json({ 
+            success: false, 
+            message: 'There was an error processing your request. Please try again later.' 
+        });
+    }
+});
+
+module.exports = router;
+
+ 
